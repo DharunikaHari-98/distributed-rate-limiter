@@ -1,6 +1,7 @@
 # Distributed Rate Limiter (Token Bucket Algorithm)
 
 ## Overview
+
 This project implements a distributed-ready API rate limiter using the Token Bucket algorithm with Spring Boot.
 
 It is designed to protect backend services from burst traffic, ensure fair API usage, and improve system reliability under high-concurrency environments.
@@ -31,7 +32,8 @@ This pattern is widely used in FAANG-scale systems and API gateway infrastructur
 - REST APIs
 - Token Bucket Algorithm
 - ConcurrentHashMap
-- Multi-threaded request handling
+- Thread-safe request handling
+- Embedded Tomcat
 
 ---
 
@@ -49,7 +51,7 @@ Protected Backend Service
 
 Each user is assigned an independent token bucket.
 
-Requests are allowed only if tokens are available in the bucket.
+Requests are allowed only if tokens are available.
 
 ---
 
@@ -60,16 +62,16 @@ Requests are allowed only if tokens are available in the bucket.
 - Refill Rate: 1 token per second
 - Scope: Per user (based on `userId`)
 
-This approach allows short bursts of traffic while enforcing long-term rate limits efficiently.
+This approach allows short bursts of traffic while enforcing long-term request limits efficiently.
 
 ---
 
 ## How the Token Bucket Algorithm Works
 
 1. Every user receives a bucket containing tokens.
-2. Each incoming API request consumes one token.
+2. Each incoming request consumes one token.
 3. Tokens are automatically refilled over time.
-4. If tokens are unavailable, the request is rejected.
+4. If no tokens are available, the request is blocked.
 
 This method provides better burst handling compared to fixed-window rate limiting.
 
@@ -80,56 +82,72 @@ This method provides better burst handling compared to fixed-window rate limitin
 The implementation uses thread-safe data structures (`ConcurrentHashMap`) to safely handle concurrent API requests in multi-threaded environments.
 
 This prevents:
+
 - Race conditions
 - Token inconsistencies
-- Concurrent access issues
+- Concurrent modification issues
 
-under high request loads.
-
----
-
-## Scalability Considerations
-
-In production environments, the in-memory rate limiter can be extended using Redis or distributed caching systems.
-
-This enables:
-
-- Horizontal scaling
-- Shared rate-limit state across instances
-- Distributed traffic management
-- Better fault tolerance
-- API gateway integration
+under high traffic loads.
 
 ---
 
-## API Endpoint
+## API Endpoints
 
-### Test Endpoint
+### 1. Health Endpoint
+
+```http
+GET /api/health
+```
+
+#### Example Response
+
+```json
+{
+  "status": "running",
+  "service": "Distributed Rate Limiter"
+}
+```
+
+---
+
+### 2. Rate Limited Request Endpoint
 
 ```http
 GET /api/request?userId=test
 ```
 
-Example:
+#### Allowed Response
 
-```http
-http://localhost:8080/api/request?userId=test
-```
-
----
-
-## Possible Responses
-
-### Allowed Request
+HTTP Status:
 
 ```text
-Request allowed
+200 OK
 ```
 
-### Rate Limited
+Body:
+
+```json
+{
+  "status": "allowed",
+  "message": "Request allowed"
+}
+```
+
+#### Rate Limited Response
+
+HTTP Status:
 
 ```text
-Rate limit exceeded
+429 TOO MANY REQUESTS
+```
+
+Body:
+
+```json
+{
+  "status": "blocked",
+  "message": "Rate limit exceeded"
+}
 ```
 
 ---
@@ -139,24 +157,30 @@ Rate limit exceeded
 ### Prerequisites
 
 - Java 17 or higher
-- IntelliJ IDEA (recommended)
+- IntelliJ IDEA
 - Maven
 
 ---
 
 ### Steps
 
-1. Clone the repository
+1. Clone the repository:
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/DharunikaHari-98/distributed-rate-limiter.git
 ```
 
-2. Open the project in IntelliJ IDEA
+2. Open the project in IntelliJ IDEA.
 
-3. Run the Spring Boot application
+3. Run the Spring Boot application.
 
-4. Open browser or Postman:
+4. Access health endpoint:
+
+```http
+http://localhost:8080/api/health
+```
+
+5. Test rate-limited request:
 
 ```http
 http://localhost:8080/api/request?userId=test
@@ -172,13 +196,28 @@ http://localhost:8080/api/request?userId=test
 1..50 | % { curl http://localhost:8080/api/request?userId=test -UseBasicParsing }
 ```
 
-This simulates high-frequency concurrent requests to test rate limiting behavior.
+This simulates rapid traffic to test request throttling behavior.
+
+---
+
+## Scalability Considerations
+
+Currently, the rate limiter uses in-memory storage for token tracking.
+
+For production-scale distributed systems, this can be extended with:
+
+- Redis-backed distributed token storage
+- API Gateway integration
+- Kubernetes deployment
+- Distributed cache synchronization
+- Dynamic per-user rate limits
+- Monitoring and metrics dashboards
 
 ---
 
 ## Real-World Use Cases
 
-- API Gateway protection
+- API Gateway traffic protection
 - Login brute-force prevention
 - Payment API throttling
 - Public REST API protection
@@ -187,29 +226,30 @@ This simulates high-frequency concurrent requests to test rate limiting behavior
 
 ---
 
-## Future Improvements
+## System Design Concepts Demonstrated
 
-- Redis-backed distributed token storage
-- Sliding Window algorithm support
-- Dynamic user-based rate limits
-- Prometheus + Grafana monitoring
-- Kubernetes deployment support
-- Distributed microservice integration
+- Token Bucket rate limiting
+- Thread-safe backend programming
+- Concurrent request handling
+- HTTP 429 status handling
+- Traffic throttling
+- Backend reliability engineering
+- Distributed systems thinking
+- REST API design
 
 ---
 
-## Key Backend Engineering Concepts Demonstrated
+## Future Improvements
 
-- Rate limiting algorithms
-- Concurrent programming
-- REST API design
-- Distributed systems thinking
-- Traffic control strategies
-- Backend reliability engineering
-- Scalability design patterns
+- Redis integration for distributed rate limiting
+- Sliding Window algorithm support
+- Dynamic rate limits based on user tiers
+- Prometheus + Grafana monitoring
+- Docker and Kubernetes deployment
+- Distributed microservice support
 
 ---
 
 ## Learning Outcome
 
-This project demonstrates practical backend engineering concepts used in scalable distributed systems and large-scale API infrastructures.
+This project demonstrates backend engineering concepts used in scalable distributed systems and modern API infrastructures for handling high-concurrency traffic safely and efficiently.
